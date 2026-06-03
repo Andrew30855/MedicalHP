@@ -1,6 +1,59 @@
-.app-shell {
+.app-shell,
+.login-shell {
   min-height: 100vh;
+}
+
+.app-shell.light,
+.login-shell.light {
   background: #f4f7f8;
+}
+
+.app-shell.dark,
+.login-shell.dark {
+  background: #0f151b;
+}
+
+.login-shell {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  width: min(420px, 100%);
+  background: var(--panel-bg, #ffffff);
+  border: 1px solid var(--panel-border, #dbe4e8);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.login-shell.dark .login-panel {
+  --panel-bg: #16202a;
+  --panel-border: #2c3b47;
+}
+
+.login-panel img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.login-panel h1 {
+  margin: 0 0 4px;
+}
+
+.login-form {
+  margin-top: 22px;
+}
+
+.login-theme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .side-panel {
@@ -28,32 +81,25 @@
   color: #ffffff;
 }
 
-.brand-block .ant-typography,
-.side-panel .ant-statistic-title,
-.side-panel .ant-statistic-content,
-.runbook .ant-typography {
+.brand-block .ant-typography {
   color: #eef6f5;
 }
 
-.side-metrics {
-  width: 100%;
-  padding: 16px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+.side-menu {
+  background: transparent;
+  border-inline-end: 0 !important;
 }
 
-.runbook {
-  display: grid;
-  gap: 10px;
-  margin-top: 24px;
+.side-menu .ant-menu-item {
+  color: #dce9e7;
+  height: 44px;
+  line-height: 44px;
+  border-radius: 8px;
 }
 
-.runbook code {
-  white-space: normal;
-  color: #13202a;
-  background: #e8f6f2;
-  border-radius: 6px;
-  padding: 6px 8px;
+.side-menu .ant-menu-item-selected {
+  color: #ffffff;
+  background: #0b8f79 !important;
 }
 
 .topbar {
@@ -68,11 +114,24 @@
   gap: 16px;
 }
 
+.app-shell.dark .topbar {
+  background: #16202a;
+  border-bottom-color: #2c3b47;
+}
+
 .topbar h1 {
   margin: 0;
   color: #12212b;
   font-size: 28px;
   line-height: 1.12;
+}
+
+.app-shell.dark .topbar h1 {
+  color: #f4fbfa;
+}
+
+.user-label {
+  font-weight: 700;
 }
 
 .content {
@@ -87,9 +146,18 @@
   min-height: 100%;
 }
 
+.app-shell.dark .panel {
+  background: #16202a;
+  border-color: #2c3b47;
+}
+
 .panel h3 {
   margin-top: 0;
   color: #12212b;
+}
+
+.app-shell.dark .panel h3 {
+  color: #f4fbfa;
 }
 
 .service-list {
@@ -106,16 +174,62 @@
   border-bottom: 1px solid #edf1f3;
 }
 
+.app-shell.dark .service-row {
+  border-bottom-color: #2c3b47;
+}
+
+.technical-menu {
+  width: 330px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #dbe4e8;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(16, 35, 45, 0.18);
+}
+
+.app-shell.dark .technical-menu {
+  background: #16202a;
+  border-color: #2c3b47;
+}
+
+.technical-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.technical-divider {
+  height: 1px;
+  background: #e7eef0;
+  margin: 4px 0;
+}
+
+.app-shell.dark .technical-divider {
+  background: #2c3b47;
+}
+
+.technical-menu code {
+  white-space: normal;
+  color: #13202a;
+  background: #e8f6f2;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.app-shell.dark .technical-menu code {
+  color: #dff7f2;
+  background: #263842;
+}
+
 .ant-btn-primary {
   background: #0b8f79;
 }
 
 .ant-btn-primary:hover {
   background: #087665 !important;
-}
-
-.ant-tabs-tab {
-  font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -130,5 +244,9 @@
 
   .panel {
     padding: 14px;
+  }
+
+  .technical-menu {
+    width: min(330px, calc(100vw - 32px));
   }
 }

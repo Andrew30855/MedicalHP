@@ -48,9 +48,16 @@ CREATE TABLE IF NOT EXISTS appointments (
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
   idempotency_key TEXT NOT NULL UNIQUE,
   trace_id TEXT NOT NULL,
+  cancellation_reason TEXT,
+  cancelled_by TEXT,
+  cancelled_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_by TEXT;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS appointment_outbox (
   id BIGSERIAL PRIMARY KEY,

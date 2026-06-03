@@ -29,6 +29,11 @@ URLs:
 - Grafana: http://localhost:3001 (`admin` / `medicalhp`)
 - RabbitMQ: http://localhost:15672 (`medicalhp` / `medicalhp`)
 
+Acceso al frontend:
+
+- Usuario: `André` | Contraseña: `andre2005`
+- Usuario: `Edgar` | Contraseña: `Epala20`
+
 ## Flujo critico
 
 1. El frontend llama `POST /api/appointments` con `Idempotency-Key`.
@@ -45,6 +50,7 @@ Reglas protegidas:
 - No se procesa doble la misma operacion por `idempotency_key UNIQUE`.
 - No se pierde el evento critico porque queda en `appointment_outbox` si RabbitMQ falla.
 - No se elimina historial; las citas cambian de estado.
+- Las citas pueden cancelarse solo con motivo obligatorio; el sistema conserva el historial y libera el cupo si estaba confirmado.
 
 ## Prueba de carga
 
