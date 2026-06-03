@@ -42,6 +42,11 @@ class CancellationRequest(BaseModel):
     requested_by: str = Field(min_length=2, max_length=80)
 
 
+class TrackingRequest(BaseModel):
+    tracking_status: str = Field(pattern="^(EN_ESPERA|EN_PROCESO|FINALIZADA)$")
+    requested_by: str = Field(min_length=2, max_length=80)
+
+
 def db() -> psycopg.Connection[Any]:
     return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 
@@ -51,6 +56,15 @@ def ensure_schema():
         conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancellation_reason TEXT")
         conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_by TEXT")
         conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ")
+        conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tracking_status TEXT NOT NULL DEFAULT 'EN_ESPERA'")
+        conn.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_tracking_status_check")
+        conn.execute(
+            """
+            ALTER TABLE appointments
+            ADD CONSTRAINT appointments_tracking_status_check
+            CHECK (tracking_status IN ('EN_ESPERA', 'EN_PROCESO', 'FINALIZADA'))
+            """
+        )
         conn.commit()
 
 
@@ -145,7 +159,7 @@ def list_appointments():
         rows = conn.execute(
             """
             SELECT a.id, a.patient_id, p.full_name AS patient_name, a.doctor_id, d.full_name AS doctor_name,
-                   d.specialty, a.slot_id, s.starts_at, a.status, a.idempotency_key, a.trace_id,
+                   d.specialty, a.slot_id, s.starts_at, a.status, a.tracking_status, a.idempotency_key, a.trace_id,
                    a.cancellation_reason, a.cancelled_by, a.cancelled_at, a.created_at
             FROM appointments a
             JOIN patients p ON p.id = a.patient_id
@@ -171,7 +185,8 @@ def create_appointment(payload: AppointmentRequest, idempotency_key: str | None 
                 INSERT INTO appointments (id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key, trace_id)
                 VALUES (%s, %s, %s, %s, 'RESERVING', %s, %s, %s)
                 ON CONFLICT (idempotency_key) DO NOTHING
-                RETURNING id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key, trace_id, created_at
+                RETURNING id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents,
+                          idempotency_key, trace_id, created_at
                 """,
                 (
                     appointment_id,
@@ -186,7 +201,7 @@ def create_appointment(payload: AppointmentRequest, idempotency_key: str | None 
             if not inserted:
                 existing = conn.execute(
                     """
-                    SELECT id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key,
+                    SELECT id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents, idempotency_key,
                            trace_id, cancellation_reason, cancelled_by, cancelled_at, created_at
                     FROM appointments
                     WHERE idempotency_key = %s
@@ -248,7 +263,7 @@ def create_appointment(payload: AppointmentRequest, idempotency_key: str | None 
             UPDATE appointments
             SET status = 'CONFIRMED', updated_at = now()
             WHERE id = %s
-            RETURNING id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key,
+            RETURNING id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents, idempotency_key,
                       trace_id, cancellation_reason, cancelled_by, cancelled_at, created_at
             """,
             (appointment_id,),
@@ -299,7 +314,7 @@ def cancel_appointment(appointment_id: str, payload: CancellationRequest):
             if appointment["status"] == "CANCELLED":
                 row = conn.execute(
                     """
-                    SELECT id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key,
+                    SELECT id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents, idempotency_key,
                            trace_id, cancellation_reason, cancelled_by, cancelled_at, created_at
                     FROM appointments
                     WHERE id = %s
@@ -347,7 +362,7 @@ def cancel_appointment(appointment_id: str, payload: CancellationRequest):
                     cancelled_at = now(),
                     updated_at = now()
                 WHERE id = %s
-                RETURNING id, patient_id, doctor_id, slot_id, status, amount_cents, idempotency_key,
+                RETURNING id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents, idempotency_key,
                           trace_id, cancellation_reason, cancelled_by, cancelled_at, created_at
                 """,
                 (payload.reason.strip(), payload.requested_by.strip(), appointment_id),
@@ -370,3 +385,50 @@ def cancel_appointment(appointment_id: str, payload: CancellationRequest):
             )
     APPOINTMENTS.labels(SERVICE_NAME, "CANCELLED").inc()
     return {"appointment": row, "idempotent": False}
+
+
+@app.patch("/appointments/{appointment_id}/tracking")
+def update_tracking(appointment_id: str, payload: TrackingRequest):
+    with db() as conn:
+        with conn.transaction():
+            appointment = conn.execute(
+                """
+                SELECT id, status, tracking_status
+                FROM appointments
+                WHERE id = %s
+                FOR UPDATE
+                """,
+                (appointment_id,),
+            ).fetchone()
+            if not appointment:
+                raise HTTPException(status_code=404, detail="appointment_not_found")
+            if appointment["status"] == "CANCELLED":
+                raise HTTPException(status_code=409, detail="cancelled_appointment_cannot_be_tracked")
+
+            row = conn.execute(
+                """
+                UPDATE appointments
+                SET tracking_status = %s, updated_at = now()
+                WHERE id = %s
+                RETURNING id, patient_id, doctor_id, slot_id, status, tracking_status, amount_cents,
+                          idempotency_key, trace_id, cancellation_reason, cancelled_by, cancelled_at, created_at
+                """,
+                (payload.tracking_status, appointment_id),
+            ).fetchone()
+            conn.execute(
+                """
+                INSERT INTO appointment_outbox (aggregate_id, event_type, payload)
+                VALUES (%s, 'AppointmentTrackingUpdated', %s)
+                """,
+                (
+                    appointment_id,
+                    json.dumps(
+                        {
+                            "appointment_id": appointment_id,
+                            "tracking_status": payload.tracking_status,
+                            "requested_by": payload.requested_by.strip(),
+                        }
+                    ),
+                ),
+            )
+    return {"appointment": row}

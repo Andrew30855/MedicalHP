@@ -51,6 +51,7 @@ Reglas protegidas:
 - No se pierde el evento critico porque queda en `appointment_outbox` si RabbitMQ falla.
 - No se elimina historial; las citas cambian de estado.
 - Las citas pueden cancelarse solo con motivo obligatorio; el sistema conserva el historial y libera el cupo si estaba confirmado.
+- El historial incluye seguimiento operativo de citas: `En espera`, `En proceso` y `Finalizada`; las citas canceladas ya no pueden avanzar de seguimiento.
 
 ## Prueba de carga
 

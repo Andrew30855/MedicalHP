@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   Alert,
@@ -35,7 +35,11 @@ const users = [
   { username: 'André', password: 'andre2005' },
   { username: 'Edgar', password: 'Epala20' },
 ]
-
+const trackingOptions = [
+  { label: 'En espera', value: 'EN_ESPERA' },
+  { label: 'En proceso', value: 'EN_PROCESO' },
+  { label: 'Finalizada', value: 'FINALIZADA' },
+]
 function fmtDate(value) {
   if (!value) return '-'
   return new Intl.DateTimeFormat('es-GT', {
@@ -51,6 +55,11 @@ function statusColor(status) {
   return 'blue'
 }
 
+function trackingColor(status) {
+  if (status === 'FINALIZADA') return 'green'
+  if (status === 'EN_PROCESO') return 'blue'
+  return 'gold'
+}
 function AppShell() {
   const [patients, setPatients] = useState([])
   const [doctors, setDoctors] = useState([])
@@ -122,7 +131,7 @@ function AppShell() {
   function login(values) {
     const found = users.find((user) => user.username === values.username && user.password === values.password)
     if (!found) {
-      message.error('Usuario o contraseña incorrectos')
+      message.error('Usuario o contraseÃ±a incorrectos')
       return
     }
     sessionStorage.setItem('medicalhp-user', found.username)
@@ -191,6 +200,24 @@ function AppShell() {
     }
   }
 
+  async function updateAppointmentTracking(appointmentId, trackingStatus) {
+    try {
+      const res = await api.patch(`/appointments/${appointmentId}/tracking`, {
+        tracking_status: trackingStatus,
+        requested_by: currentUser,
+      })
+      setAppointments((current) =>
+        current.map((appointment) =>
+          appointment.id === appointmentId ? { ...appointment, ...res.data.appointment } : appointment,
+        ),
+      )
+      message.success('Seguimiento actualizado')
+    } catch (error) {
+      message.error(error.response?.data?.detail ?? 'No se pudo actualizar el seguimiento')
+      await loadCoreData()
+    }
+  }
+
   useEffect(() => {
     const initialLoad = window.setTimeout(loadCoreData, 0)
     const interval = window.setInterval(loadCoreData, 8000)
@@ -223,6 +250,23 @@ function AppShell() {
       title: 'Estado',
       dataIndex: 'status',
       render: (value) => <Tag color={statusColor(value)}>{value}</Tag>,
+    },
+    {
+      title: 'Seguimiento',
+      dataIndex: 'tracking_status',
+      render: (value, row) => (
+        <Space direction="vertical" size={4}>
+          <Tag color={trackingColor(value)}>{trackingOptions.find((option) => option.value === value)?.label ?? 'En espera'}</Tag>
+          <Select
+            size="small"
+            value={value ?? 'EN_ESPERA'}
+            disabled={row.status === 'CANCELLED'}
+            options={trackingOptions}
+            onChange={(nextStatus) => updateAppointmentTracking(row.id, nextStatus)}
+            className="tracking-select"
+          />
+        </Space>
+      ),
     },
     { title: 'Motivo', dataIndex: 'cancellation_reason', render: (value) => value || '-' },
     { title: 'Trace', dataIndex: 'trace_id', render: (value) => <Text code>{String(value).slice(0, 8)}</Text> },
@@ -402,7 +446,7 @@ function AppShell() {
                       dataSource={appointments}
                       pagination={{ pageSize: 6 }}
                       size="middle"
-                      scroll={{ x: 980 }}
+                      scroll={{ x: 1160 }}
                     />
                   </section>
                 </Col>
@@ -516,3 +560,4 @@ function AppShell() {
 }
 
 export default AppShell
+

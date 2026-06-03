@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   doctor_id UUID NOT NULL REFERENCES doctors(id),
   slot_id UUID NOT NULL REFERENCES slots(id),
   status TEXT NOT NULL CHECK (status IN ('RESERVING', 'CONFIRMED', 'PAYMENT_FAILED', 'CANCELLED')),
+  tracking_status TEXT NOT NULL DEFAULT 'EN_ESPERA' CHECK (tracking_status IN ('EN_ESPERA', 'EN_PROCESO', 'FINALIZADA')),
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
   idempotency_key TEXT NOT NULL UNIQUE,
   trace_id TEXT NOT NULL,
@@ -58,6 +59,9 @@ CREATE TABLE IF NOT EXISTS appointments (
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_by TEXT;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tracking_status TEXT NOT NULL DEFAULT 'EN_ESPERA';
+ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_tracking_status_check;
+ALTER TABLE appointments ADD CONSTRAINT appointments_tracking_status_check CHECK (tracking_status IN ('EN_ESPERA', 'EN_PROCESO', 'FINALIZADA'));
 
 CREATE TABLE IF NOT EXISTS appointment_outbox (
   id BIGSERIAL PRIMARY KEY,
