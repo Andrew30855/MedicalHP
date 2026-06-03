@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: MedicalHP
+    orgId: 1
+    folder: MedicalHP
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

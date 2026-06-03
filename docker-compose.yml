@@ -1,0 +1,190 @@
+name: medicalhp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: medicalhp
+      POSTGRES_USER: medicalhp
+      POSTGRES_PASSWORD: medicalhp
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medicalhp -d medicalhp"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: medicalhp
+      RABBITMQ_DEFAULT_PASS: medicalhp
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
+  patient-service:
+    build: ./services/patient-service
+    environment:
+      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      SERVICE_NAME: patient-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  doctor-schedule-service:
+    build: ./services/doctor-schedule-service
+    environment:
+      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      REDIS_URL: redis://redis:6379/0
+      SERVICE_NAME: doctor-schedule-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  appointment-service:
+    build: ./services/appointment-service
+    environment:
+      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      SCHEDULE_SERVICE_URL: http://doctor-schedule-service:8000
+      RABBITMQ_URL: amqp://medicalhp:medicalhp@rabbitmq:5672/
+      SERVICE_NAME: appointment-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      doctor-schedule-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      RABBITMQ_URL: amqp://medicalhp:medicalhp@rabbitmq:5672/
+      SERVICE_NAME: notification-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./services/api-gateway
+    environment:
+      PATIENT_SERVICE_URL: http://patient-service:8000
+      SCHEDULE_SERVICE_URL: http://doctor-schedule-service:8000
+      APPOINTMENT_SERVICE_URL: http://appointment-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      REDIS_URL: redis://redis:6379/1
+      SERVICE_NAME: api-gateway
+    depends_on:
+      patient-service:
+        condition: service_healthy
+      doctor-schedule-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: medicalhp
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  grafana-data:

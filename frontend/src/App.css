@@ -1,0 +1,134 @@
+.app-shell {
+  min-height: 100vh;
+  background: #f4f7f8;
+}
+
+.side-panel {
+  min-height: 100vh;
+  background: #16202a !important;
+  color: #eef6f5;
+  padding: 20px;
+}
+
+.brand-block {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.brand-block img {
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.brand-block h2 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.brand-block .ant-typography,
+.side-panel .ant-statistic-title,
+.side-panel .ant-statistic-content,
+.runbook .ant-typography {
+  color: #eef6f5;
+}
+
+.side-metrics {
+  width: 100%;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.runbook {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.runbook code {
+  white-space: normal;
+  color: #13202a;
+  background: #e8f6f2;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.topbar {
+  height: auto;
+  min-height: 84px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #dbe4e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.topbar h1 {
+  margin: 0;
+  color: #12212b;
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.content {
+  padding: 20px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dbe4e8;
+  border-radius: 8px;
+  padding: 18px;
+  min-height: 100%;
+}
+
+.panel h3 {
+  margin-top: 0;
+  color: #12212b;
+}
+
+.service-list {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf1f3;
+}
+
+.ant-btn-primary {
+  background: #0b8f79;
+}
+
+.ant-btn-primary:hover {
+  background: #087665 !important;
+}
+
+.ant-tabs-tab {
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "uid": "medicalhp-overview",
+  "title": "MedicalHP Observability",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP requests by service",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (job) (rate(medicalhp_http_requests_total[1m]))", "legendFormat": "{{job}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Appointment outcomes",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (status) (medicalhp_appointments_total)", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Slot conflicts and holds",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(medicalhp_slot_conflicts_total[1m]))", "legendFormat": "conflicts/s" },
+        { "expr": "sum(rate(medicalhp_slot_holds_total[1m]))", "legendFormat": "holds/s" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Gateway latency p95",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(medicalhp_request_seconds_bucket{job=\"api-gateway\"}[1m])) by (le))", "legendFormat": "p95" }
+      ]
+    }
+  ]
+}
