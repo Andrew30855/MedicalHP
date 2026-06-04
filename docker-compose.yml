@@ -19,6 +19,26 @@ services:
       - "5432:5432"
     restart: unless-stopped
 
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.1
+    environment:
+      DB_USER: medicalhp
+      DB_PASSWORD: medicalhp
+      DB_NAME: medicalhp
+      DB_HOST: postgres
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 100
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432", "-U", "medicalhp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -51,10 +71,10 @@ services:
   patient-service:
     build: ./services/patient-service
     environment:
-      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      DATABASE_URL: postgresql://medicalhp:medicalhp@pgbouncer:5432/medicalhp
       SERVICE_NAME: patient-service
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -65,12 +85,14 @@ services:
 
   doctor-schedule-service:
     build: ./services/doctor-schedule-service
+    deploy:
+      replicas: 2
     environment:
-      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      DATABASE_URL: postgresql://medicalhp:medicalhp@pgbouncer:5432/medicalhp
       REDIS_URL: redis://redis:6379/0
       SERVICE_NAME: doctor-schedule-service
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -83,13 +105,15 @@ services:
 
   appointment-service:
     build: ./services/appointment-service
+    deploy:
+      replicas: 3
     environment:
-      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      DATABASE_URL: postgresql://medicalhp:medicalhp@pgbouncer:5432/medicalhp
       SCHEDULE_SERVICE_URL: http://doctor-schedule-service:8000
       RABBITMQ_URL: amqp://medicalhp:medicalhp@rabbitmq:5672/
       SERVICE_NAME: appointment-service
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -105,11 +129,11 @@ services:
   notification-service:
     build: ./services/notification-service
     environment:
-      DATABASE_URL: postgresql://medicalhp:medicalhp@postgres:5432/medicalhp
+      DATABASE_URL: postgresql://medicalhp:medicalhp@pgbouncer:5432/medicalhp
       RABBITMQ_URL: amqp://medicalhp:medicalhp@rabbitmq:5672/
       SERVICE_NAME: notification-service
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

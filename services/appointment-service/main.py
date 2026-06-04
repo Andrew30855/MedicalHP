@@ -106,6 +106,7 @@ def publish_outbox_once(limit: int = 50):
             WHERE published = false
             ORDER BY id
             LIMIT %s
+            FOR UPDATE SKIP LOCKED
             """,
             (limit,),
         ).fetchall()
