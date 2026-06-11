@@ -32,12 +32,24 @@
   --panel-border: #2c3b47;
 }
 
-.login-panel img {
+.login-hero {
   width: 100%;
   height: 150px;
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 16px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-brand img {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
 }
 
 .login-panel h1 {
@@ -64,16 +76,17 @@
 }
 
 .brand-block {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 14px;
   margin-bottom: 24px;
 }
 
 .brand-block img {
-  width: 100%;
-  height: 128px;
-  object-fit: cover;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: 14px;
 }
 
 .brand-block h2 {
@@ -154,6 +167,18 @@
 .panel h3 {
   margin-top: 0;
   color: #12212b;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel-heading h3 {
+  margin: 0;
 }
 
 .app-shell.dark .panel h3 {
@@ -244,6 +269,11 @@
 
   .panel {
     padding: 14px;
+  }
+
+  .panel-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .technical-menu {

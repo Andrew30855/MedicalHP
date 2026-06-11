@@ -25,6 +25,7 @@ import {
 } from 'antd'
 import './App.css'
 import clinicalImage from './assets/hero.png'
+import medicalHpLogo from './assets/medicalhp-logo.svg'
 
 const { Header, Content, Sider } = Layout
 const { Title, Text } = Typography
@@ -40,6 +41,8 @@ const trackingOptions = [
   { label: 'En proceso', value: 'EN_PROCESO' },
   { label: 'Finalizada', value: 'FINALIZADA' },
 ]
+const purgeableStatuses = new Set(['CANCELLED', 'PAYMENT_FAILED'])
+
 function fmtDate(value) {
   if (!value) return '-'
   return new Intl.DateTimeFormat('es-GT', {
@@ -79,6 +82,7 @@ function AppShell() {
 
   const isDark = themeMode === 'dark'
   const confirmedAppointments = appointments.filter((item) => item.status === 'CONFIRMED').length
+  const purgeableAppointments = appointments.filter((item) => purgeableStatuses.has(item.status))
   const unavailableSlots = slots.filter((slot) => Number(slot.available) <= 0).length
   const serviceHealth = Object.entries(health?.services ?? {})
 
@@ -200,6 +204,47 @@ function AppShell() {
     }
   }
 
+  function confirmPurgeAppointment(appointmentId) {
+    Modal.confirm({
+      title: 'Borrar registro del historial',
+      content: 'Este registro cerrado se eliminara del historial y no afectara citas activas.',
+      okText: 'Borrar registro',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await api.delete(`/appointments/${appointmentId}/history`)
+          setAppointments((current) => current.filter((appointment) => appointment.id !== appointmentId))
+          message.success('Registro borrado del historial')
+          await loadCoreData()
+        } catch (error) {
+          message.error(error.response?.data?.detail ?? 'No se pudo borrar el registro')
+        }
+      },
+    })
+  }
+
+  function confirmPurgeClosedAppointments() {
+    Modal.confirm({
+      title: 'Limpiar historial cerrado',
+      content: `Se borraran ${purgeableAppointments.length} registros cancelados o fallidos del historial.`,
+      okText: 'Limpiar historial',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await Promise.all(purgeableAppointments.map((appointment) => api.delete(`/appointments/${appointment.id}/history`)))
+          setAppointments((current) => current.filter((appointment) => !purgeableStatuses.has(appointment.status)))
+          message.success('Historial cerrado limpiado')
+          await loadCoreData()
+        } catch (error) {
+          message.error(error.response?.data?.detail ?? 'No se pudo limpiar todo el historial')
+          await loadCoreData()
+        }
+      },
+    })
+  }
+
   async function updateAppointmentTracking(appointmentId, trackingStatus) {
     try {
       const res = await api.patch(`/appointments/${appointmentId}/tracking`, {
@@ -274,8 +319,18 @@ function AppShell() {
       title: 'Accion',
       key: 'action',
       render: (_, row) => (
-        <Button danger size="small" disabled={row.status === 'CANCELLED'} onClick={() => setAppointmentToCancel(row)}>
-          Eliminar
+        <Button
+          danger
+          size="small"
+          onClick={() => {
+            if (purgeableStatuses.has(row.status)) {
+              confirmPurgeAppointment(row.id)
+              return
+            }
+            setAppointmentToCancel(row)
+          }}
+        >
+          {purgeableStatuses.has(row.status) ? 'Borrar' : 'Cancelar'}
         </Button>
       ),
     },
@@ -332,8 +387,11 @@ function AppShell() {
       <ConfigProvider theme={{ algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}>
         <div className={`login-shell ${isDark ? 'dark' : 'light'}`}>
           <section className="login-panel">
-            <img src={clinicalImage} alt="MedicalHP access" />
-            <Title level={1}>MedicalHP</Title>
+            <img className="login-hero" src={clinicalImage} alt="MedicalHP access" />
+            <div className="login-brand">
+              <img src={medicalHpLogo} alt="MedicalHP logo" />
+              <Title level={1}>MedicalHP</Title>
+            </div>
             <Text>Acceso a la consola de citas</Text>
             <Form form={loginForm} layout="vertical" onFinish={login} className="login-form">
               <Form.Item name="username" label="Usuario" rules={[{ required: true, message: 'Ingresa tu usuario' }]}>
@@ -361,7 +419,7 @@ function AppShell() {
       <Layout className={`app-shell ${isDark ? 'dark' : 'light'}`}>
         <Sider className="side-panel" width={290} breakpoint="lg" collapsedWidth={0}>
           <div className="brand-block">
-            <img src={clinicalImage} alt="MedicalHP clinical operations" />
+            <img src={medicalHpLogo} alt="MedicalHP logo" />
             <div>
               <Title level={2}>MedicalHP</Title>
               <Text>Reservas medicas distribuidas</Text>
@@ -439,7 +497,12 @@ function AppShell() {
                 </Col>
                 <Col xs={24}>
                   <section className="panel">
-                    <Title level={3}>Historial intocable</Title>
+                    <div className="panel-heading">
+                      <Title level={3}>Historial de citas</Title>
+                      <Button danger disabled={purgeableAppointments.length === 0} onClick={confirmPurgeClosedAppointments}>
+                        Limpiar cerradas
+                      </Button>
+                    </div>
                     <Table
                       rowKey="id"
                       columns={appointmentColumns}

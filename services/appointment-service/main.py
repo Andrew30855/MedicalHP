@@ -388,6 +388,31 @@ def cancel_appointment(appointment_id: str, payload: CancellationRequest):
     return {"appointment": row, "idempotent": False}
 
 
+@app.delete("/appointments/{appointment_id}/history")
+def purge_appointment_history(appointment_id: str):
+    with db() as conn:
+        with conn.transaction():
+            appointment = conn.execute(
+                """
+                SELECT id, status
+                FROM appointments
+                WHERE id = %s
+                FOR UPDATE
+                """,
+                (appointment_id,),
+            ).fetchone()
+            if not appointment:
+                raise HTTPException(status_code=404, detail="appointment_not_found")
+            if appointment["status"] not in {"CANCELLED", "PAYMENT_FAILED"}:
+                raise HTTPException(status_code=409, detail="only_closed_appointments_can_be_purged")
+
+            conn.execute("DELETE FROM slot_holds WHERE appointment_id = %s", (appointment_id,))
+            conn.execute("DELETE FROM notifications WHERE appointment_id = %s", (appointment_id,))
+            conn.execute("DELETE FROM appointment_outbox WHERE aggregate_id = %s", (appointment_id,))
+            conn.execute("DELETE FROM appointments WHERE id = %s", (appointment_id,))
+    return {"deleted": True, "appointment_id": appointment_id}
+
+
 @app.patch("/appointments/{appointment_id}/tracking")
 def update_tracking(appointment_id: str, payload: TrackingRequest):
     with db() as conn:
