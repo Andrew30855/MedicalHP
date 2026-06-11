@@ -130,6 +130,7 @@ function AppShell() {
   const isDoctor = currentUser?.role === 'doctor'
   const canManagePatients = currentUser?.role === 'admin' || currentUser?.role === 'reception'
   const canReserveAppointments = currentUser?.role === 'admin' || currentUser?.role === 'reception'
+  const canViewTechnical = currentUser?.role === 'admin'
   const isDark = themeMode === 'dark'
   const visibleAppointments = isDoctor
     ? appointments.filter((item) => item.doctor_id === currentUser?.doctorId)
@@ -154,16 +155,17 @@ function AppShell() {
     if (!currentUser) return
     setLoading(true)
     try {
-      const [patientRes, doctorRes, appointmentRes] = await Promise.all([
+      const [patientRes, doctorRes, appointmentRes, notificationRes, healthRes] = await Promise.all([
         api.get('/patients'),
         api.get('/doctors'),
         api.get('/appointments'),
+        ...(canViewTechnical ? [api.get('/notifications'), api.get('/system/health')] : []),
       ])
       setPatients(patientRes.data.patients ?? [])
       setDoctors(doctorRes.data.doctors ?? [])
       setAppointments(appointmentRes.data.appointments ?? [])
-      setNotifications([])
-      setHealth(null)
+      setNotifications(notificationRes?.data?.notifications ?? [])
+      setHealth(healthRes?.data ?? null)
       const firstDoctor = currentUser.doctorId || selectedDoctor || doctorRes.data.doctors?.[0]?.id
       if (firstDoctor) {
         setSelectedDoctor(firstDoctor)
@@ -407,6 +409,9 @@ function AppShell() {
       ),
     },
     { title: 'Motivo', dataIndex: 'cancellation_reason', render: (value) => value || '-' },
+    ...(canViewTechnical
+      ? [{ title: 'Trace', dataIndex: 'trace_id', render: (value) => <Text code>{String(value).slice(0, 8)}</Text> }]
+      : []),
     {
       title: 'Accion',
       key: 'action',
@@ -441,6 +446,7 @@ function AppShell() {
     : [
         ...(canReserveAppointments ? [{ key: 'reserve', label: 'Reservas' }] : []),
         ...(canManagePatients ? [{ key: 'patients', label: 'Pacientes' }] : []),
+        ...(canViewTechnical ? [{ key: 'observability', label: 'Observabilidad' }] : []),
       ]
 
   const statusPercent = Math.round(
@@ -457,7 +463,22 @@ function AppShell() {
         <Text>Horarios sin cupo</Text>
         <Text strong>{unavailableSlots}</Text>
       </div>
+      {canViewTechnical && (
+        <div className="technical-row">
+          <Text>Notificaciones</Text>
+          <Text strong>{notifications.length}</Text>
+        </div>
+      )}
       {serviceHealth.length > 0 && <Progress percent={statusPercent} size="small" strokeColor="#0b8f79" />}
+      {canViewTechnical && (
+        <>
+          <div className="technical-divider" />
+          <Text strong>Demo tecnica</Text>
+          <Text code>docker compose up --build --scale appointment-service=3</Text>
+          <Text code>powershell ./scripts/chaos/kill-random.ps1</Text>
+          <Text code>k6 run ./scripts/load/k6-medicalhp.js</Text>
+        </>
+      )}
       <div className="technical-divider" />
       <div className="technical-row">
         <Text>Modo oscuro</Text>
@@ -733,7 +754,7 @@ function AppShell() {
               </Row>
             )}
 
-            {activeView === 'observability' && (
+            {activeView === 'observability' && canViewTechnical && (
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
                   <section className="panel">
