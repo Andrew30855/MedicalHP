@@ -93,7 +93,10 @@ INSERT INTO doctors (id, full_name, specialty, room)
 VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Dra. Valeria Soto', 'Cardiologia', 'A-204'),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Dr. Mateo Luna', 'Laboratorio clinico', 'Lab-01'),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Dra. Emilia Paz', 'Medicina interna', 'B-110')
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Dra. Emilia Paz', 'Medicina interna', 'B-110'),
+  ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Dra. Sofia Herrera', 'Pediatria', 'C-302'),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Dr. Diego Morales', 'Traumatologia', 'D-118'),
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'Dra. Camila Reyes', 'Dermatologia', 'B-215')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO slots (id, doctor_id, starts_at, capacity)
@@ -101,5 +104,14 @@ VALUES
   ('aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-06-04T15:00:00Z', 1),
   ('aaaaaaaa-2222-4222-8222-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-06-04T16:00:00Z', 2),
   ('bbbbbbbb-1111-4111-8111-bbbbbbbbbbbb', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '2026-06-04T15:00:00Z', 3),
-  ('cccccccc-1111-4111-8111-cccccccccccc', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '2026-06-05T14:30:00Z', 1)
+  ('cccccccc-1111-4111-8111-cccccccccccc', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '2026-06-05T14:30:00Z', 1),
+  ('aaaaaaaa-3333-4333-8333-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026-06-12T15:00:00Z', 2),
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '2026-06-12T16:00:00Z', 3),
+  ('cccccccc-2222-4222-8222-cccccccccccc', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '2026-06-13T14:30:00Z', 2),
+  ('dddddddd-1111-4111-8111-dddddddddddd', 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2026-06-12T15:30:00Z', 2),
+  ('dddddddd-2222-4222-8222-dddddddddddd', 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2026-06-15T17:00:00Z', 2),
+  ('eeeeeeee-1111-4111-8111-eeeeeeeeeeee', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '2026-06-13T16:30:00Z', 2),
+  ('eeeeeeee-2222-4222-8222-eeeeeeeeeeee', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '2026-06-16T18:00:00Z', 2),
+  ('ffffffff-1111-4111-8111-ffffffffffff', 'ffffffff-ffff-ffff-ffff-ffffffffffff', '2026-06-12T18:30:00Z', 2),
+  ('ffffffff-2222-4222-8222-ffffffffffff', 'ffffffff-ffff-ffff-ffff-ffffffffffff', '2026-06-15T14:00:00Z', 2)
 ON CONFLICT (doctor_id, starts_at) DO NOTHING;

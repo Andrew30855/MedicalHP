@@ -32,14 +32,6 @@
   --panel-border: #2c3b47;
 }
 
-.login-hero {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
 .login-brand {
   display: flex;
   align-items: center;
@@ -201,6 +193,30 @@
 
 .app-shell.dark .service-row {
   border-bottom-color: #2c3b47;
+}
+
+.doctor-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.doctor-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.doctor-stats > div {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid #dbe4e8;
+  border-radius: 8px;
+}
+
+.app-shell.dark .doctor-stats > div {
+  border-color: #2c3b47;
 }
 
 .technical-menu {
